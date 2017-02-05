@@ -59,7 +59,7 @@ public class MainActivity extends AppCompatActivity {
             t.setVisibility(View.INVISIBLE);
         }
 
-        fab.getRootView().setBackgroundColor(Color.parseColor("#dddddd"));
+        fab.getRootView().setBackgroundColor(Color.parseColor("#eeeeee"));
 
 
         RelativeLayout rl = (RelativeLayout) findViewById(R.id.content_main);
