@@ -3,6 +3,7 @@ package com.politefireball.geolocation;
 import android.Manifest;
 import android.content.Context;
 import android.graphics.Color;
+import android.graphics.drawable.GradientDrawable;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
@@ -39,7 +40,7 @@ import java.util.Map;
 import javax.net.ssl.HttpsURLConnection;
 
 public class MainActivity extends AppCompatActivity {
-    final boolean RELEASE = false;
+    final boolean RELEASE = true;
     TextView text;
     Button help;
     @Override
@@ -55,12 +56,15 @@ public class MainActivity extends AppCompatActivity {
         if(RELEASE)
         {
             TextView t = (TextView)findViewById(R.id.fuckthis);
-            t.setTextColor(Color.parseColor("#ffffff"));
+            t.setVisibility(View.INVISIBLE);
         }
+
+        fab.getRootView().setBackgroundColor(Color.parseColor("#dddddd"));
 
 
         RelativeLayout rl = (RelativeLayout) findViewById(R.id.content_main);
         help = new Button(this);
+        help.setTextSize(20);
         help.setText("Help me!");
         help.setHeight(1000);
         help.setWidth(1000);
@@ -170,7 +174,7 @@ public class MainActivity extends AppCompatActivity {
                 TextView t = (TextView)findViewById(R.id.fuckthis);
                 // RelativeLayout rl = (RelativeLayout) findViewById(R.id.content_main);
                 //text = new TextView(MainActivity.this);
-                t.setText("long : " + lon + " lat: " + lat + " increm: " + increm);
+                //t.setText("long : " + lon + " lat: " + lat + " increm: " + increm);
                 //RelativeLayout.LayoutParams lp = new RelativeLayout.LayoutParams(
                        // RelativeLayout.LayoutParams.WRAP_CONTENT,
                        // RelativeLayout.LayoutParams.WRAP_CONTENT);
@@ -185,7 +189,7 @@ public class MainActivity extends AppCompatActivity {
         postDataParams.put("id", Integer.toString(id));
         postDataParams.put("lon", Double.toString(lon));
         postDataParams.put("lat", Double.toString(lat));
-        String toSend = "{\"id\":\"" + (String)postDataParams.get("id") + "\",\"longitude\":" + (String)postDataParams.get("lon") + ",\"latitude\":" + (String)postDataParams.get("lat") + "}";
+        String toSend = "{\"id\":" + (String)postDataParams.get("id") + ",\"longitude\":" + (String)postDataParams.get("lon") + ",\"latitude\":" + (String)postDataParams.get("lat") + "}";
 
         String resp = performPostCall(urlstr, toSend);
     }
@@ -193,7 +197,7 @@ public class MainActivity extends AppCompatActivity {
     private String getAlarmAck(int id) {
         String urlstr = "https://1hiutgaba7.execute-api.us-east-1.amazonaws.com/prod/GetAlertStatus";
 
-        String toSend = "{\"id\":\"" + Integer.toString(id) + "}";
+        String toSend = "{\"id\":" + Integer.toString(id) + "}";
         String resp = performPostCall(urlstr, toSend);
         return resp;
     }
@@ -248,7 +252,7 @@ public class MainActivity extends AppCompatActivity {
                 response="";
 
             }
-            response = Integer.toString(responseCode);
+            //response = Integer.toString(responseCode);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -324,27 +328,50 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void run() {
                 int megaID = (int)(Math.random()*2147483647);
-                help.setText(Integer.toString(megaID));
+                //help.setText(Integer.toString(megaID));
                 int x = 0;
+                while (myLocation == null)
+                {
+                    try {
+                    Thread.sleep(1000);
+                    }
+                    catch(InterruptedException e)
+                    {
+                    }
+                }
+                double lon = myLocation.getLongitude();
+                double lat = myLocation.getLatitude();
+                double alt = myLocation.getAltitude();
+                try {
+                    postAlarm(megaID, lon, lat, alt, x);
+                } catch (Exception e) {
+                }
+
                 while(true)
                 {
-                    if (myLocation != null) {
-                        double lon = myLocation.getLongitude();
-                        double lat = myLocation.getLatitude();
-                        double alt = myLocation.getAltitude();
-                        try {
-                            postAlarm(megaID, lon, lat, alt, x);
-                            String alarmAck = getAlarmAck(megaID);
-                            if(alarmAck == "1") {
-                                help.setBackgroundColor(Color.parseColor("#00ff00"));
-                                help.setText("Help is on its way");
-                            }
+                    try {
 
-                            Thread.sleep(1000);
-                            x += 1;
-                        } catch (Exception e) {
-                        }
+                        final String alarmAck = getAlarmAck(megaID);
+                        runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                if(alarmAck.equals("1")) {
+                                    help.setBackgroundColor(Color.parseColor("#00ff00"));
+                                    help.setTextColor(Color.parseColor("#000000"));
+                                    help.setText("Help is on its way");
+                                }
+                            }
+                        });
+                        x += 1;
+                    } catch (Exception e) {
                     }
+                    try {
+                        Thread.sleep(1000);
+                    }
+                    catch(InterruptedException e)
+                    {
+                    }
+
                 }
             }
         }).start();
