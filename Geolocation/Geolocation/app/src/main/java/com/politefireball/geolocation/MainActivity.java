@@ -2,6 +2,7 @@ package com.politefireball.geolocation;
 
 import android.Manifest;
 import android.content.Context;
+import android.graphics.Color;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
@@ -13,9 +14,11 @@ import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.widget.Button;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -36,8 +39,9 @@ import java.util.Map;
 import javax.net.ssl.HttpsURLConnection;
 
 public class MainActivity extends AppCompatActivity {
-
+    final boolean RELEASE = false;
     TextView text;
+    Button help;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -46,12 +50,56 @@ public class MainActivity extends AppCompatActivity {
         setSupportActionBar(toolbar);
 
         FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
-        fab.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(final View view) {
+        fab.setVisibility(View.INVISIBLE);
 
+        if(RELEASE)
+        {
+            TextView t = (TextView)findViewById(R.id.fuckthis);
+            t.setTextColor(Color.parseColor("#ffffff"));
+        }
+
+
+        RelativeLayout rl = (RelativeLayout) findViewById(R.id.content_main);
+        help = new Button(this);
+        help.setText("Help me!");
+        help.setHeight(1000);
+        help.setWidth(1000);
+        help.setBackgroundColor(Color.parseColor("#ff0000"));
+        help.setTextColor(Color.parseColor("#ffffff"));
+
+        help.setOnTouchListener(new Button.OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, MotionEvent arg1) {
+                int action = arg1.getAction();
+
+                if(action == MotionEvent.ACTION_DOWN) {
+
+                    help.setBackgroundColor(Color.parseColor("#dd0000"));
+
+                    return true;
+
+                } else if (action == MotionEvent.ACTION_UP) {
+
+                    // check logine functionality.
+                    help.setBackgroundColor(Color.parseColor("#ff0000"));
+                    help.setText("Waiting for help...");
+                    autoUpdate();
+                    return true;
+
+
+                }
+
+                return false;
             }
         });
+
+
+        RelativeLayout.LayoutParams lp = new RelativeLayout.LayoutParams(
+                RelativeLayout.LayoutParams.WRAP_CONTENT,
+                RelativeLayout.LayoutParams.WRAP_CONTENT);
+        lp.setMargins(0, 200,0,0);
+        rl.addView(help, lp);
+
 
         // Acquire a reference to the system Location Manager
         locationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
@@ -82,7 +130,6 @@ public class MainActivity extends AppCompatActivity {
         //ActivityCompat.requestPermissions( this, new String[] {  android.Manifest.permission.ACCESS_COARSE_LOCATION  }, 0 );
         ActivityCompat.requestPermissions( this, new String[] {  android.Manifest.permission.ACCESS_FINE_LOCATION  }, 0 );
         locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 1, 1, locationListener);
-        autoUpdate();
 
     }
 
@@ -115,7 +162,7 @@ public class MainActivity extends AppCompatActivity {
         return super.onOptionsItemSelected(item);
     }
 
-    private void postGuard(int id, final double lon, final double lat, double alt, final int increm)
+    private void postAlarm(int id, final double lon, final double lat, double alt, final int increm)
     {
         runOnUiThread(new Runnable() {
             @Override
@@ -132,14 +179,23 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        String urlstr = "https://1hiutgaba7.execute-api.us-east-1.amazonaws.com/prod/SetGuardPosition";
+        String urlstr = "https://1hiutgaba7.execute-api.us-east-1.amazonaws.com/prod/SetAlarm";
         //String urlstr = "https://posttestserver.com/post.php";
-        HashMap<String, String> params = new HashMap<String, String>();
-        params.put("id", Double.toString(id));
-        params.put("lon", Double.toString(lon));
-        params.put("lat", Double.toString(lat));
-        params.put("alt", Double.toString(alt));
-        String resp = performPostCall(urlstr, params);
+        HashMap<String, String> postDataParams = new HashMap<String, String>();
+        postDataParams.put("id", Integer.toString(id));
+        postDataParams.put("lon", Double.toString(lon));
+        postDataParams.put("lat", Double.toString(lat));
+        String toSend = "{\"id\":\"" + (String)postDataParams.get("id") + "\",\"longitude\":" + (String)postDataParams.get("lon") + ",\"latitude\":" + (String)postDataParams.get("lat") + "}";
+
+        String resp = performPostCall(urlstr, toSend);
+    }
+
+    private String getAlarmAck(int id) {
+        String urlstr = "https://1hiutgaba7.execute-api.us-east-1.amazonaws.com/prod/GetAlertStatus";
+
+        String toSend = "{\"id\":\"" + Integer.toString(id) + "}";
+        String resp = performPostCall(urlstr, toSend);
+        return resp;
     }
 
     private String getGuards()
@@ -150,7 +206,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public String performPostCall(String requestURL,
-                                   HashMap<String, String> postDataParams) {
+                                   String toSend) {
 
         URL url;
         String response = "";
@@ -173,10 +229,9 @@ public class MainActivity extends AppCompatActivity {
             //writer.write(getPostDataString(postDataParams));
 
 
-            String test = "{\"id\":\"" + (String)postDataParams.get("id") + "\",\"longitude\":" + (String)postDataParams.get("lon") + ",\"latitude\":" + (String)postDataParams.get("lat") + "}";
             //{"id":"123","longitude":70.7,"latitude":4.4}
 
-            writer.write(test);
+            writer.write(toSend);
             writer.flush();
             writer.close();
             os.close();
@@ -268,6 +323,8 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public void run() {
+                int megaID = (int)(Math.random()*2147483647);
+                help.setText(Integer.toString(megaID));
                 int x = 0;
                 while(true)
                 {
@@ -276,7 +333,13 @@ public class MainActivity extends AppCompatActivity {
                         double lat = myLocation.getLatitude();
                         double alt = myLocation.getAltitude();
                         try {
-                            postGuard(42, lon, lat, alt, x);
+                            postAlarm(megaID, lon, lat, alt, x);
+                            String alarmAck = getAlarmAck(megaID);
+                            if(alarmAck == "1") {
+                                help.setBackgroundColor(Color.parseColor("#00ff00"));
+                                help.setText("Help is on its way");
+                            }
+
                             Thread.sleep(1000);
                             x += 1;
                         } catch (Exception e) {
