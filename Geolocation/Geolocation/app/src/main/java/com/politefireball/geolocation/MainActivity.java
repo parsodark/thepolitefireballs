@@ -16,6 +16,9 @@ import android.util.Log;
 import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.widget.RelativeLayout;
+import android.widget.TextView;
+import android.widget.Toast;
 
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
@@ -34,6 +37,7 @@ import javax.net.ssl.HttpsURLConnection;
 
 public class MainActivity extends AppCompatActivity {
 
+    TextView text;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -50,7 +54,7 @@ public class MainActivity extends AppCompatActivity {
         });
 
         // Acquire a reference to the system Location Manager
-        LocationManager locationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
+        locationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
 
         // Define a listener that responds to location updates
         LocationListener locationListener = new LocationListener() {
@@ -77,11 +81,12 @@ public class MainActivity extends AppCompatActivity {
 
         //ActivityCompat.requestPermissions( this, new String[] {  android.Manifest.permission.ACCESS_COARSE_LOCATION  }, 0 );
         ActivityCompat.requestPermissions( this, new String[] {  android.Manifest.permission.ACCESS_FINE_LOCATION  }, 0 );
-        locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 0, 0, locationListener);
+        locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 1, 1, locationListener);
         autoUpdate();
 
     }
 
+    private LocationManager locationManager = null;
     private Location myLocation = null;
 
     private void makeUseOfNewLocation(Location location) {
@@ -110,8 +115,23 @@ public class MainActivity extends AppCompatActivity {
         return super.onOptionsItemSelected(item);
     }
 
-    private void postGuard(int id, double lon, double lat, double alt)
+    private void postGuard(int id, final double lon, final double lat, double alt, final int increm)
     {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                TextView t = (TextView)findViewById(R.id.fuckthis);
+                // RelativeLayout rl = (RelativeLayout) findViewById(R.id.content_main);
+                //text = new TextView(MainActivity.this);
+                t.setText("long : " + lon + " lat: " + lat + " increm: " + increm);
+                //RelativeLayout.LayoutParams lp = new RelativeLayout.LayoutParams(
+                       // RelativeLayout.LayoutParams.WRAP_CONTENT,
+                       // RelativeLayout.LayoutParams.WRAP_CONTENT);
+                //lp.setMargins(600, 50,0,0);
+                //rl.addView(text, lp);
+            }
+        });
+
         String urlstr = "https://1hiutgaba7.execute-api.us-east-1.amazonaws.com/prod/SetGuardPosition";
         //String urlstr = "https://posttestserver.com/post.php";
         HashMap<String, String> params = new HashMap<String, String>();
@@ -119,7 +139,6 @@ public class MainActivity extends AppCompatActivity {
         params.put("lon", Double.toString(lon));
         params.put("lat", Double.toString(lat));
         params.put("alt", Double.toString(alt));
-
         String resp = performPostCall(urlstr, params);
     }
 
@@ -236,20 +255,30 @@ public class MainActivity extends AppCompatActivity {
 
     public void autoUpdate()
     {
+        boolean well = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
+        if (!well) {
+            TextView t = (TextView)findViewById(R.id.fuckthis);
+            t.setText("rip");
+        } else {
+            TextView t = (TextView)findViewById(R.id.fuckthis);
+            t.setText("good enough..");
+        }
+
         new Thread(new Runnable() {
 
             @Override
             public void run() {
+                int x = 0;
                 while(true)
                 {
                     if (myLocation != null) {
                         double lon = myLocation.getLongitude();
                         double lat = myLocation.getLatitude();
                         double alt = myLocation.getAltitude();
-
                         try {
-                            postGuard(42, lon, lat, alt);
+                            postGuard(42, lon, lat, alt, x);
                             Thread.sleep(1000);
+                            x += 1;
                         } catch (Exception e) {
                         }
                     }
